@@ -1,0 +1,76 @@
+version: "3.8"
+services:
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: todo_bot
+    env_file:
+      - .env
+    restart: unless-stopped
+    depends_on:
+      - redis_fsm
+      - postgres
+      # - nats
+
+  redis_fsm:
+    image: "redis:7"
+    restart: "unless-stopped"
+    volumes:
+      - "./redis/redis.conf:/usr/local/etc/redis/redis.conf"
+      - "./redis/data:/data"
+    command: redis-server /usr/local/etc/redis/redis.conf
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+
+  postgres:
+    image: postgres:15-alpine
+    restart: "no"
+    ports:
+      - "127.0.0.1:5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - "01-simple-alchemy-postgres:/var/lib/postgresql/data"
+
+  # pgadmin:
+  #   image: dpage/pgadmin4:latest
+  #   restart: "no"
+  #   ports:
+  #     - "127.0.0.1:8080:80"
+  #   environment:
+  #     PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+  #     PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+  #   volumes:
+  #     - "01-simple-alchemy-pgadmin:/var/lib/pgadmin"
+  #   depends_on:
+  #     - postgres
+
+  # nats:
+  #   image: nats:latest
+  #   entrypoint: /nats-server
+  #   command: "-c /config/server.conf"
+  #   ports:
+  #     - "4222:4222"
+  #     - "8222:8222"
+  #   volumes:
+  #     - ./nats/data:/data
+  #     - ./nats/config/server.conf:/config/server.conf
+
+  # nats-nui:
+  #   image: ghcr.io/nats-nui/nui:latest
+  #   container_name: nats-nui
+  #   ports:
+  #     - "31311:31311"
+  #   volumes:
+  #     - ./nui/db:/db
+  #   depends_on:
+  #     - nats
+
+volumes:
+  01-simple-alchemy-pgadmin:
+  01-simple-alchemy-postgres:
+
+
